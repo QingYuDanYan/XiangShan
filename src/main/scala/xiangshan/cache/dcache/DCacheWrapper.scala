@@ -534,15 +534,10 @@ class DCacheImp(outer: DCache) extends LazyModuleImp(outer) with HasDCacheParame
 
   //----------------------------------------
   // mainPipe
-  // when a req enters main pipe, if it is set-conflict with replace pipe or refill pipe,
-  // block the req in main pipe
-  val refillPipeStatus = Wire(Valid(UInt(idxBits.W)))
-  refillPipeStatus.valid := refillPipe.io.req.valid
-  refillPipeStatus.bits := get_idx(refillPipe.io.req.bits.paddrWithVirtualAlias)
-  val storeShouldBeBlocked = refillPipeStatus.valid
-  val probeShouldBeBlocked = refillPipeStatus.valid
-  block_decoupled(probeQueue.io.pipe_req, mainPipe.io.probe_req, probeShouldBeBlocked)
-  block_decoupled(io.lsu.store.req, mainPipe.io.store_req, storeShouldBeBlocked)
+  // refill has the highest tag write priority, 
+  // it will block probe_req / store_req automatically
+  probeQueue.io.pipe_req <> mainPipe.io.probe_req
+  io.lsu.store.req <> mainPipe.io.store_req
 
   io.lsu.store.replay_resp := RegNext(mainPipe.io.store_replay_resp)
   io.lsu.store.main_pipe_hit_resp := mainPipe.io.store_hit_resp
